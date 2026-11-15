@@ -57,8 +57,8 @@ Architecture **microservices** : chaque service est autonome, enregistré dans u
 |---|---|---|
 | `backend/` | 8 modules Spring Boot | IntelliJ IDEA (ouvrir le dossier `backend`) |
 | `frontend/` | Application Angular 20 reliée à la Gateway | VS Code ou IntelliJ IDEA (ouvrir le dossier `frontend`) |
-| `conceptionUML/` | 15 diagrammes UML (sources Mermaid + images PNG) | Lecteur d'images, plugin Mermaid |
-| `rapportPFA/` | Rapport du PFA (.odt modifiable + .pdf) | LibreOffice Writer ou Word |
+| `conceptionUML/` | diagrammes UML ( images PNG) | Lecteur d'images |
+| `rapportPFA/` | Rapport du PFA (.odt modifiable + .pdf) | Word |
 
 ## Prérequis
 
