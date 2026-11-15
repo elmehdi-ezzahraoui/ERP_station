@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="0 - ERP : tout lancer" type="CompoundRunConfigurationType">
+    <toRun name="1 - discovery-service (8761)" type="Application" />
+    <toRun name="2 - gateway-service (8888)" type="Application" />
+    <toRun name="3 - authentification-service (8081)" type="Application" />
+    <toRun name="4 - stock-service (8082)" type="Application" />
+    <toRun name="5 - achat-service (8083)" type="Application" />
+    <toRun name="6 - vente-service (8084)" type="Application" />
+    <toRun name="7 - client-service (8085)" type="Application" />
+    <toRun name="8 - statistiques-service (8086)" type="Application" />
+    <method v="2" />
+  </configuration>
+</component>

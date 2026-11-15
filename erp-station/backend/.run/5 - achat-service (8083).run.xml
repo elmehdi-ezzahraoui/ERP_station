@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="5 - achat-service (8083)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="ma.emsi.station.achat.AchatServiceApplication" />
+    <module name="achat-service" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

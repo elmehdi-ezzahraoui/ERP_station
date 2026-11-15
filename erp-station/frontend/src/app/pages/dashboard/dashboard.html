@@ -1,0 +1,93 @@
+<div class="form-row" style="justify-content: space-between">
+  <h1>Tableau de bord</h1>
+  <button class="btn btn-light" (click)="charger()">Actualiser</button>
+</div>
+
+@if (erreur()) {
+  <div class="msg msg-err">{{ erreur() }}</div>
+}
+
+@if (data(); as d) {
+  <p class="muted">Journée du {{ d.date | date: 'fullDate' }}</p>
+
+  @if (d.servicesIndisponibles.length) {
+    <div class="msg msg-warn">Services indisponibles : {{ d.servicesIndisponibles.join(', ') }}. Les autres données restent affichées.</div>
+  }
+
+  <div class="grid grid-4" style="margin-bottom:16px">
+    <div class="kpi"><div class="kpi-label">Chiffre d'affaires</div><div class="kpi-value">{{ d.chiffreAffaires | number: '1.2-2' }} DH</div></div>
+    <div class="kpi"><div class="kpi-label">Volume vendu</div><div class="kpi-value">{{ d.volumeTotal | number: '1.0-0' }} L</div></div>
+    <div class="kpi"><div class="kpi-label">Nombre de ventes</div><div class="kpi-value">{{ d.nombreVentes }}</div></div>
+    <div class="kpi" [class.kpi-danger]="d.alertes.length > 0"><div class="kpi-label">Alertes</div><div class="kpi-value">{{ d.alertes.length }}</div></div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h2>Alertes du jour</h2>
+      @if (d.alertes.length) {
+        <ul class="alertes">
+          @for (a of d.alertes; track $index) {
+            <li class="negatif">{{ a }}</li>
+          }
+        </ul>
+      } @else {
+        <p class="positif">Aucune anomalie aujourd'hui.</p>
+      }
+    </div>
+
+    <div class="card">
+      <h2>Niveau des cuves</h2>
+      <table>
+        <thead><tr><th>Cuve</th><th>Carburant</th><th class="num">Volume</th><th>Remplissage</th></tr></thead>
+        <tbody>
+          @for (c of d.cuves; track c.id) {
+            <tr [class.ligne-alerte]="c.enAlerte">
+              <td>{{ c.code }}</td>
+              <td>{{ c.carburantNom }}</td>
+              <td class="num">{{ c.volumeActuel | number: '1.0-0' }} L</td>
+              <td>
+                <div class="jauge" [class.alerte]="c.enAlerte"><div [style.width.%]="c.tauxRemplissage"></div></div>
+                <span class="muted">{{ c.tauxRemplissage | number: '1.0-1' }} %</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Ventes par carburant</h2>
+      <table>
+        <thead><tr><th>Carburant</th><th class="num">Volume</th><th class="num">CA</th><th class="num">Ventes</th></tr></thead>
+        <tbody>
+          @for (v of d.ventesParCarburant; track v.carburantId) {
+            <tr>
+              <td>{{ v.carburantNom }}</td>
+              <td class="num">{{ v.volumeTotal | number: '1.0-2' }} L</td>
+              <td class="num">{{ v.chiffreAffaires | number: '1.2-2' }} DH</td>
+              <td class="num">{{ v.nombreVentes }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="4" class="muted">Aucune vente aujourd'hui.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (d.encoursClients; as e) {
+      <div class="card">
+        <h2>Clients à crédit</h2>
+        <p>Encours total : <strong>{{ e.encoursTotal | number: '1.2-2' }} DH</strong> ({{ e.nombreClients }} clients)</p>
+        <p>Factures impayées : <strong>{{ e.impayesFactures | number: '1.2-2' }} DH</strong></p>
+        @if (e.clientsProchesPlafond.length) {
+          <p class="negatif">Proches du plafond :</p>
+          <ul class="alertes">
+            @for (c of e.clientsProchesPlafond; track c.id) {
+              <li>{{ c.raisonSociale }} : {{ c.soldeActuel | number: '1.2-2' }} / {{ c.plafondCredit | number: '1.2-2' }} DH</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </div>
+}

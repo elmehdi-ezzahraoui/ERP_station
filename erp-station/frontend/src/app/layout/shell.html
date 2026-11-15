@@ -1,0 +1,21 @@
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-logo">ERP</span>
+      <span>Station-Service</span>
+    </div>
+    <nav>
+      @for (e of menu(); track e.lien) {
+        <a [routerLink]="e.lien" routerLinkActive="active">{{ e.libelle }}</a>
+      }
+    </nav>
+    <div class="user">
+      <div class="user-name">{{ auth.nomAffiche() }}</div>
+      <div class="user-role">{{ auth.role() }}</div>
+      <button class="btn btn-light" (click)="auth.logout()">Se déconnecter</button>
+    </div>
+  </aside>
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

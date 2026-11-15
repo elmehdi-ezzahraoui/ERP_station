@@ -1,0 +1,74 @@
+<h1>Paramétrage</h1>
+<p class="muted">C'est le gérant qui décide de ce qui est un écart normal. Au-delà de ces seuils, l'application signale une anomalie.</p>
+@if (message()) { <div class="msg msg-ok">{{ message() }}</div> }
+@if (erreur()) { <div class="msg msg-err">{{ erreur() }}</div> }
+
+<div class="grid grid-2">
+  @if (controle; as p) {
+    <div class="card">
+      <h2>Contrôle de la caisse (vente-service)</h2>
+      <div class="form-row">
+        <div class="field">
+          <label for="seuil">Écart de caisse toléré (DH)</label>
+          <input id="seuil" class="small" type="number" min="0" step="1" [(ngModel)]="p.seuilEcartCaisse" [disabled]="!estGerant" />
+        </div>
+        <label><input type="checkbox" [(ngModel)]="p.controleContinuiteIndex" [disabled]="!estGerant" /> Contrôler la continuité des index</label>
+      </div>
+      @if (estGerant) { <button class="btn btn-primary" (click)="enregistrerControle()">Enregistrer</button> }
+    </div>
+  }
+
+  @if (financier; as f) {
+    <div class="card">
+      <h2>Paramètres financiers (client-service)</h2>
+      <div class="form-row">
+        <div class="field">
+          <label for="tva">Taux de TVA (0,10 = 10 %)</label>
+          <input id="tva" class="small" type="number" min="0" max="1" step="0.01" [(ngModel)]="f.tauxTva" [disabled]="!estComptable" />
+        </div>
+        <div class="field">
+          <label for="enc">Alerte encours (part du plafond)</label>
+          <input id="enc" class="small" type="number" min="0" max="1" step="0.05" [(ngModel)]="f.seuilAlerteEncours" [disabled]="!estComptable" />
+        </div>
+      </div>
+      @if (estComptable) { <button class="btn btn-primary" (click)="enregistrerFinancier()">Enregistrer</button> }
+    </div>
+  }
+</div>
+
+<div class="card">
+  <h2>Carburants : prix de vente et tolérance de coulage (stock-service)</h2>
+  <table>
+    <thead><tr><th>Carburant</th><th>Prix de vente TTC (DH/L)</th><th>Tolérance de coulage (%)</th><th></th></tr></thead>
+    <tbody>
+      @for (c of carburants; track c.id) {
+        <tr>
+          <td>{{ c.nom }}</td>
+          <td><input class="small" type="number" min="0" step="0.01" [(ngModel)]="c.prixVente" [disabled]="!estGerant" /></td>
+          <td><input class="small" type="number" min="0" max="10" step="0.05" [(ngModel)]="c.toleranceCoulagePct" [disabled]="!estGerant" /></td>
+          <td>@if (estGerant) { <button class="btn btn-light" (click)="enregistrerCarburant(c)">Enregistrer</button> }</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (estGerant) {
+  <div class="card">
+    <h2>Cuves : seuil d'alerte de stock bas (stock-service)</h2>
+    <table>
+      <thead><tr><th>Cuve</th><th>Carburant</th><th class="num">Capacité</th><th>Seuil d'alerte (L)</th><th></th></tr></thead>
+      <tbody>
+        @for (c of cuves; track c.id) {
+          <tr>
+            <td>{{ c.code }}</td>
+            <td>{{ c.carburantNom }}</td>
+            <td class="num">{{ c.capaciteMax | number: '1.0-0' }} L</td>
+            <td><input class="small" type="number" min="0" step="100" [(ngModel)]="c.seuilAlerte" /></td>
+            <td><button class="btn btn-light" (click)="enregistrerCuve(c)">Enregistrer</button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

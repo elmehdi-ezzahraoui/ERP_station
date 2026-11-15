@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="2 - gateway-service (8888)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="ma.emsi.station.gateway.GatewayServiceApplication" />
+    <module name="gateway-service" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="3 - authentification-service (8081)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="ma.emsi.station.authentification.AuthentificationServiceApplication" />
+    <module name="authentification-service" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

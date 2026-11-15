@@ -1,0 +1,102 @@
+<h1>Clients et factures</h1>
+@if (message()) { <div class="msg msg-ok">{{ message() }}</div> }
+@if (erreur()) { <div class="msg msg-err">{{ erreur() }}</div> }
+
+<div class="card">
+  <h2>Clients professionnels</h2>
+  <table>
+    <thead><tr><th>Raison sociale</th><th>ICE</th><th class="num">Plafond</th><th class="num">Encours</th><th class="num">Disponible</th><th>Statut</th></tr></thead>
+    <tbody>
+      @for (c of clients(); track c.id) {
+        <tr [class.ligne-alerte]="c.disponible <= 0">
+          <td>{{ c.raisonSociale }}</td>
+          <td>{{ c.ice }}</td>
+          <td class="num">{{ c.plafondCredit | number: '1.2-2' }}</td>
+          <td class="num">{{ c.soldeActuel | number: '1.2-2' }}</td>
+          <td class="num">{{ c.disponible | number: '1.2-2' }}</td>
+          <td>@if (c.actif) { <span class="badge badge-ok">Actif</span> } @else { <span class="badge badge-warn">Inactif</span> }</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  @if (peutModifier) {
+    <div class="form-row" style="margin-top:12px">
+      <div class="field"><label for="crs">Raison sociale</label><input id="crs" [(ngModel)]="nouveauClient.raisonSociale" /></div>
+      <div class="field"><label for="cice">ICE (15 chiffres)</label><input id="cice" [(ngModel)]="nouveauClient.ice" /></div>
+      <div class="field"><label for="ctel">Téléphone</label><input id="ctel" class="small" [(ngModel)]="nouveauClient.telephone" /></div>
+      <div class="field"><label for="cplaf">Plafond (DH)</label><input id="cplaf" class="small" type="number" min="0" [(ngModel)]="nouveauClient.plafondCredit" /></div>
+      <button class="btn btn-light" (click)="creerClient()">Ajouter le client</button>
+    </div>
+  }
+</div>
+
+@if (peutModifier) {
+  <div class="grid grid-2">
+    <div class="card">
+      <h2>Générer une facture</h2>
+      <div class="form-row">
+        <div class="field">
+          <label for="fcli">Client</label>
+          <select id="fcli" [(ngModel)]="facturation.clientId">
+            <option [ngValue]="null">-- choisir --</option>
+            @for (c of clients(); track c.id) { <option [ngValue]="c.id">{{ c.raisonSociale }}</option> }
+          </select>
+        </div>
+        <div class="field"><label for="fdeb">Du</label><input id="fdeb" type="date" [(ngModel)]="facturation.debut" /></div>
+        <div class="field"><label for="ffin">Au</label><input id="ffin" type="date" [(ngModel)]="facturation.fin" /></div>
+        <button class="btn btn-primary" (click)="genererFacture()">Générer</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Enregistrer un règlement</h2>
+      <div class="form-row">
+        <div class="field">
+          <label for="rfac">Facture</label>
+          <select id="rfac" [(ngModel)]="reglement.factureId">
+            <option [ngValue]="null">-- choisir --</option>
+            @for (f of facturesAPayer(); track f.id) {
+              <option [ngValue]="f.id">{{ f.numeroFacture }} ({{ f.raisonSociale }}, reste {{ f.resteAPayer | number: '1.2-2' }} DH)</option>
+            }
+          </select>
+        </div>
+        <div class="field"><label for="rmt">Montant (DH)</label><input id="rmt" class="small" type="number" min="0" [(ngModel)]="reglement.montant" /></div>
+        <div class="field">
+          <label for="rmode">Mode</label>
+          <select id="rmode" [(ngModel)]="reglement.mode">
+            @for (m of modesReglement; track m) { <option [ngValue]="m">{{ m }}</option> }
+          </select>
+        </div>
+        <div class="field"><label for="rref">Référence</label><input id="rref" class="small" [(ngModel)]="reglement.reference" /></div>
+        <button class="btn btn-primary" (click)="regler()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Factures</h2>
+    <table>
+      <thead><tr><th>Numéro</th><th>Date</th><th>Client</th><th>Période</th><th class="num">HT</th><th class="num">TVA</th><th class="num">TTC</th><th class="num">Reste</th><th>Statut</th></tr></thead>
+      <tbody>
+        @for (f of factures(); track f.id) {
+          <tr>
+            <td>{{ f.numeroFacture }}</td>
+            <td>{{ f.dateFacture | date: 'dd/MM/yyyy' }}</td>
+            <td>{{ f.raisonSociale }}</td>
+            <td>{{ f.periodeDebut | date: 'dd/MM' }} - {{ f.periodeFin | date: 'dd/MM/yyyy' }}</td>
+            <td class="num">{{ f.montantHT | number: '1.2-2' }}</td>
+            <td class="num">{{ f.montantTVA | number: '1.2-2' }}</td>
+            <td class="num">{{ f.montantTTC | number: '1.2-2' }}</td>
+            <td class="num">{{ f.resteAPayer | number: '1.2-2' }}</td>
+            <td>
+              <span class="badge" [class.badge-ok]="f.statut === 'PAYEE'" [class.badge-warn]="f.statut !== 'PAYEE'">{{ f.statut }}</span>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="9" class="muted">Aucune facture.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

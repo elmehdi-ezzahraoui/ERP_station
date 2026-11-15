@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="1 - discovery-service (8761)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="ma.emsi.station.discovery.DiscoveryServiceApplication" />
+    <module name="discovery-service" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

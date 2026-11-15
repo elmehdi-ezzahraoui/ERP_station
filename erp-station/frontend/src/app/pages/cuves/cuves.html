@@ -1,0 +1,73 @@
+<h1>Cuves et jaugeages</h1>
+@if (erreur()) { <div class="msg msg-err">{{ erreur() }}</div> }
+
+<div class="card">
+  <h2>Niveau des cuves (stock théorique)</h2>
+  <table>
+    <thead><tr><th>Cuve</th><th>Carburant</th><th class="num">Volume</th><th class="num">Capacité</th><th class="num">Seuil d'alerte</th><th>Remplissage</th></tr></thead>
+    <tbody>
+      @for (c of cuves(); track c.id) {
+        <tr [class.ligne-alerte]="c.enAlerte">
+          <td>{{ c.code }}</td>
+          <td>{{ c.carburantNom }}</td>
+          <td class="num">{{ c.volumeActuel | number: '1.0-3' }} L</td>
+          <td class="num">{{ c.capaciteMax | number: '1.0-0' }} L</td>
+          <td class="num">{{ c.seuilAlerte | number: '1.0-0' }} L</td>
+          <td><div class="jauge" [class.alerte]="c.enAlerte"><div [style.width.%]="c.tauxRemplissage"></div></div></td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Nouveau jaugeage</h2>
+  <p class="muted">Mesurez le volume réel de la cuve. L'écart avec le stock théorique est comparé à la tolérance de coulage du carburant (réglable dans Paramétrage).</p>
+  <div class="form-row">
+    <div class="field">
+      <label for="cuve">Cuve</label>
+      <select id="cuve" [ngModel]="cuveId" (ngModelChange)="choisirCuve($event)">
+        <option [ngValue]="null">-- choisir --</option>
+        @for (c of cuves(); track c.id) { <option [ngValue]="c.id">{{ c.code }} ({{ c.carburantNom }})</option> }
+      </select>
+    </div>
+    <div class="field">
+      <label for="mesure">Volume mesuré (L)</label>
+      <input id="mesure" type="number" min="0" step="0.001" [(ngModel)]="volumeMesure" />
+    </div>
+    <label><input type="checkbox" [(ngModel)]="ajusterStock" /> Recaler le stock sur la mesure</label>
+    <button class="btn btn-primary" (click)="jauger()">Enregistrer le jaugeage</button>
+  </div>
+
+  @if (resultat(); as j) {
+    <div class="msg" [class.msg-err]="j.anomalie" [class.msg-ok]="!j.anomalie">
+      Écart de {{ j.ecart | number: '1.0-3' }} L ({{ j.ecartPourcentage | number: '1.2-2' }} %), tolérance {{ j.toleranceAppliquee | number: '1.2-2' }} % :
+      {{ j.anomalie ? 'ANOMALIE DE COULAGE, le gérant est alerté.' : 'dans la tolérance.' }}
+    </div>
+  }
+</div>
+
+@if (cuveId !== null) {
+  <div class="card">
+    <h2>Historique des jaugeages</h2>
+    <table>
+      <thead><tr><th>Date</th><th class="num">Théorique</th><th class="num">Mesuré</th><th class="num">Écart</th><th class="num">%</th><th>Résultat</th></tr></thead>
+      <tbody>
+        @for (j of historique(); track j.id) {
+          <tr [class.ligne-alerte]="j.anomalie">
+            <td>{{ j.dateReleve | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td class="num">{{ j.volumeTheorique | number: '1.0-3' }}</td>
+            <td class="num">{{ j.volumeMesure | number: '1.0-3' }}</td>
+            <td class="num" [class.negatif]="j.ecart < 0">{{ j.ecart | number: '1.0-3' }} L</td>
+            <td class="num">{{ j.ecartPourcentage | number: '1.2-2' }}</td>
+            <td>
+              @if (j.anomalie) { <span class="badge badge-danger">Coulage</span> } @else { <span class="badge badge-ok">OK</span> }
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6" class="muted">Aucun jaugeage pour cette cuve.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

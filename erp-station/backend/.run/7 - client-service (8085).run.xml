@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="7 - client-service (8085)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="ma.emsi.station.client.ClientServiceApplication" />
+    <module name="client-service" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

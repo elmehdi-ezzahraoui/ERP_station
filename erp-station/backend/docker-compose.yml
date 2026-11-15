@@ -1,0 +1,148 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: station-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+
+  discovery-service:
+    build:
+      context: .
+      args:
+        MODULE: discovery-service
+    container_name: discovery-service
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8761'"]
+      interval: 5s
+      retries: 20
+
+  gateway-service:
+    build:
+      context: .
+      args:
+        MODULE: gateway-service
+    container_name: gateway-service
+    ports:
+      - "8888:8888"
+    environment:
+      EUREKA_URL: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+
+  authentification-service:
+    build:
+      context: .
+      args:
+        MODULE: authentification-service
+    container_name: authentification-service
+    environment:
+      EUREKA_URL: http://discovery-service:8761/eureka
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  stock-service:
+    build:
+      context: .
+      args:
+        MODULE: stock-service
+    container_name: stock-service
+    environment:
+      EUREKA_URL: http://discovery-service:8761/eureka
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  achat-service:
+    build:
+      context: .
+      args:
+        MODULE: achat-service
+    container_name: achat-service
+    environment:
+      EUREKA_URL: http://discovery-service:8761/eureka
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  vente-service:
+    build:
+      context: .
+      args:
+        MODULE: vente-service
+    container_name: vente-service
+    environment:
+      EUREKA_URL: http://discovery-service:8761/eureka
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  client-service:
+    build:
+      context: .
+      args:
+        MODULE: client-service
+    container_name: client-service
+    environment:
+      EUREKA_URL: http://discovery-service:8761/eureka
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  statistiques-service:
+    build:
+      context: .
+      args:
+        MODULE: statistiques-service
+    container_name: statistiques-service
+    environment:
+      EUREKA_URL: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+
+volumes:
+  pgdata:

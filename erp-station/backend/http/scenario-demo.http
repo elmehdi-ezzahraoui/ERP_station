@@ -1,0 +1,187 @@
+### Scenario de soutenance : CONTROLE DES PERTES
+### poste pompiste (index) -> ventes -> cloture avec ecart -> jaugeage avec coulage -> statistiques des pertes
+### A executer dans l'ordre avec le client HTTP d'IntelliJ (bouton play a gauche de chaque requete).
+### Tout passe par la Gateway (port 8888). Resultats attendus indiques en commentaire.
+
+### 1. Login pompiste
+POST http://localhost:8888/api/auth/login
+Content-Type: application/json
+
+{"username": "pompiste1", "password": "pompiste123"}
+
+> {% client.global.set("tokenPompiste", response.body.accessToken); %}
+
+### 2. Login gerant
+POST http://localhost:8888/api/auth/login
+Content-Type: application/json
+
+{"username": "gerant", "password": "gerant123"}
+
+> {% client.global.set("tokenGerant", response.body.accessToken); %}
+
+### 3. Login comptable
+POST http://localhost:8888/api/auth/login
+Content-Type: application/json
+
+{"username": "comptable", "password": "comptable123"}
+
+> {% client.global.set("tokenComptable", response.body.accessToken); %}
+
+### ============================ PARAMETRAGE ============================
+
+### 4. Parametrage du controle de caisse (vente-service) : ecart tolere 20 DH, controle de continuite actif
+GET http://localhost:8888/api/parametres/controle
+Authorization: Bearer {{tokenGerant}}
+
+### 5. Tolerances de coulage par carburant (stock-service) : Gasoil 0,3 %, Sans Plomb 0,5 %
+GET http://localhost:8888/api/carburants
+Authorization: Bearer {{tokenGerant}}
+
+### 6. Pistolets et leur dernier index connu (1 = 10000, 2 = 20000, 3 = 30000, 4 = 40000)
+GET http://localhost:8888/api/pistolets
+Authorization: Bearer {{tokenPompiste}}
+
+### ============================ POSTE DU POMPISTE ============================
+
+### 7. Ouverture du poste avec 500 DH de fond de caisse
+POST http://localhost:8888/api/postes/ouvrir
+Authorization: Bearer {{tokenPompiste}}
+Content-Type: application/json
+
+{"fondCaisse": 500}
+
+> {% client.global.set("posteId", response.body.id); %}
+
+### 8. Index de debut. Pistolet 3 : 30005 au lieu de 30000 -> "indexDiscontinu": true (anomalie signalee)
+POST http://localhost:8888/api/postes/{{posteId}}/index-debut
+Authorization: Bearer {{tokenPompiste}}
+Content-Type: application/json
+
+{"releves": [
+  {"pistoletId": 1, "index": 10000},
+  {"pistoletId": 2, "index": 20000},
+  {"pistoletId": 3, "index": 30005}
+]}
+
+### 9. Vente par carte : 300 DH de sans plomb (pistolet 2) -> 22,901 L
+POST http://localhost:8888/api/ventes
+Authorization: Bearer {{tokenPompiste}}
+Content-Type: application/json
+
+{"pistoletId": 2, "posteId": {{posteId}}, "montant": 300, "modePaiement": "CARTE"}
+
+### 10. Vente a credit : 200 L de gasoil pour Transport Atlas (client 1) -> 2240 DH
+POST http://localhost:8888/api/ventes
+Authorization: Bearer {{tokenPompiste}}
+Content-Type: application/json
+
+{"pistoletId": 1, "posteId": {{posteId}}, "volume": 200, "modePaiement": "CREDIT", "clientId": 1}
+
+### 11. Vente a credit REFUSEE : Taxi Express (client 2, plafond 1000 DH) -> 422
+POST http://localhost:8888/api/ventes
+Authorization: Bearer {{tokenPompiste}}
+Content-Type: application/json
+
+{"pistoletId": 1, "posteId": {{posteId}}, "volume": 150, "modePaiement": "CREDIT", "clientId": 2}
+
+### 12. Cloture avec index de fin. Les ventes especes ne sont pas saisies une par une : elles sont deduites des compteurs.
+###     Compteurs : 350 L gasoil (3920 DH) + 80 L sans plomb (1048 DH) = 4968 DH
+###     Especes attendues = 4968 - 300 (carte) - 2240 (credit) = 2428 DH ; theorique = 500 + 2428 = 2928 DH
+###     Argent compte : 2880 DH -> ecart = -48 DH > 20 DH tolere -> "ecartHorsTolerance": true
+POST http://localhost:8888/api/postes/{{posteId}}/cloturer
+Authorization: Bearer {{tokenPompiste}}
+Content-Type: application/json
+
+{"totalPhysique": 2880, "indexFin": [
+  {"pistoletId": 1, "index": 10350},
+  {"pistoletId": 2, "index": 20080},
+  {"pistoletId": 3, "index": 30005}
+]}
+
+### ============================ JAUGEAGE (COULAGE) ============================
+
+### 13. Etat des cuves : gasoil 17650 L, sans plomb 4420 L (stock theorique apres les ventes)
+GET http://localhost:8888/api/cuves
+Authorization: Bearer {{tokenGerant}}
+
+### 14. Jaugeage gasoil : 17630 L mesures -> ecart -20 L (0,11 %) < 0,3 % -> pas d'anomalie
+POST http://localhost:8888/api/jaugeages
+Authorization: Bearer {{tokenGerant}}
+Content-Type: application/json
+
+{"cuveId": 1, "volumeMesure": 17630, "ajusterStock": true}
+
+### 15. Jaugeage sans plomb : 4395 L mesures -> ecart -25 L (0,57 %) > 0,5 % -> "anomalie": true
+POST http://localhost:8888/api/jaugeages
+Authorization: Bearer {{tokenGerant}}
+Content-Type: application/json
+
+{"cuveId": 2, "volumeMesure": 4395, "ajusterStock": true}
+
+### ============================ STATISTIQUES ============================
+
+### 16. Tableau de bord du jour : alertes coulage, ecart de caisse et index discontinu
+GET http://localhost:8888/api/statistiques/dashboard
+Authorization: Bearer {{tokenGerant}}
+
+### 17. Pertes du mois : 45 L de carburant (environ 450 DH au prix d'achat) + 48 DH de manquant en caisse
+GET http://localhost:8888/api/statistiques/pertes
+Authorization: Bearer {{tokenGerant}}
+
+### 18. Bilan par pompiste (trie du plus gros manquant au plus petit)
+GET http://localhost:8888/api/statistiques/pompistes
+Authorization: Bearer {{tokenGerant}}
+
+### 19. Marges par carburant du mois
+GET http://localhost:8888/api/statistiques/marges
+Authorization: Bearer {{tokenComptable}}
+
+### 20. Le gerant ajuste le parametrage : ecart de caisse tolere porte a 50 DH
+PUT http://localhost:8888/api/parametres/controle
+Authorization: Bearer {{tokenGerant}}
+Content-Type: application/json
+
+{"seuilEcartCaisse": 50, "controleContinuiteIndex": true}
+
+### ============================ AUTRES FONCTIONS ============================
+
+### 21. Reception d'un camion-citerne (achat-service -> stock-service)
+POST http://localhost:8888/api/livraisons
+Authorization: Bearer {{tokenGerant}}
+Content-Type: application/json
+
+{"cuveId": 2, "fournisseurId": 1, "quantite": 8000, "prixAchatUnitaire": 10.65, "numeroBon": "BL-0003"}
+
+### 22. Facture du mois pour le client 1 (comptable)
+POST http://localhost:8888/api/factures/generer
+Authorization: Bearer {{tokenComptable}}
+Content-Type: application/json
+
+{"clientId": 1, "debut": "2026-01-01", "fin": "2026-12-31"}
+
+> {% client.global.set("factureId", response.body.id); %}
+
+### 23. Reglement partiel de la facture
+POST http://localhost:8888/api/reglements
+Authorization: Bearer {{tokenComptable}}
+Content-Type: application/json
+
+{"factureId": {{factureId}}, "montant": 1000, "modeReglement": "VIREMENT", "reference": "VIR-123"}
+
+### 24. Securite : le pompiste n'a pas acces aux statistiques -> 403
+GET http://localhost:8888/api/statistiques/pertes
+Authorization: Bearer {{tokenPompiste}}
+
+### 25. Securite : le pompiste ne peut pas modifier le parametrage -> 403
+PUT http://localhost:8888/api/parametres/controle
+Authorization: Bearer {{tokenPompiste}}
+Content-Type: application/json
+
+{"seuilEcartCaisse": 1000, "controleContinuiteIndex": false}
+
+### 26. Securite : endpoint interne bloque par la Gateway -> 403
+POST http://localhost:8888/api/cuves/1/sortie
+Authorization: Bearer {{tokenGerant}}
+Content-Type: application/json
+
+{"quantite": 1000}

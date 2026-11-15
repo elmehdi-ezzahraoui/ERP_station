@@ -1,0 +1,98 @@
+<div class="form-row">
+  <h1 style="margin:0 auto 0 0">Statistiques des pertes</h1>
+  <div class="field"><label for="sdeb">Du</label><input id="sdeb" type="date" [(ngModel)]="debut" /></div>
+  <div class="field"><label for="sfin">Au</label><input id="sfin" type="date" [(ngModel)]="fin" /></div>
+  <button class="btn btn-primary" (click)="charger()">Afficher</button>
+</div>
+@if (erreur()) { <div class="msg msg-err">{{ erreur() }}</div> }
+
+@if (pertes(); as p) {
+  <div class="grid grid-4" style="margin-bottom:16px">
+    <div class="kpi kpi-danger"><div class="kpi-label">Pertes totales</div><div class="kpi-value">{{ p.totalPertesDH | number: '1.2-2' }} DH</div></div>
+    <div class="kpi"><div class="kpi-label">Carburant perdu</div><div class="kpi-value">{{ p.perteCarburantLitres | number: '1.0-1' }} L</div><div class="muted">{{ p.perteCarburantDH | number: '1.2-2' }} DH au prix d'achat</div></div>
+    <div class="kpi"><div class="kpi-label">Manquants de caisse</div><div class="kpi-value">{{ p.manquantsCaisseDH | number: '1.2-2' }} DH</div></div>
+    <div class="kpi"><div class="kpi-label">Anomalies</div><div class="kpi-value">{{ p.nombreAnomaliesJaugeage + p.nombreEcartsCaisseHorsTolerance + p.nombreIndexDiscontinus }}</div>
+      <div class="muted">{{ p.nombreAnomaliesJaugeage }} coulage, {{ p.nombreEcartsCaisseHorsTolerance }} caisse, {{ p.nombreIndexDiscontinus }} index</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Écarts de jaugeage par cuve (coulage)</h2>
+    <table>
+      <thead><tr><th>Cuve</th><th>Carburant</th><th class="num">Jaugeages</th><th class="num">Anomalies</th><th class="num">Écart cumulé</th><th class="num">Valeur</th><th class="num">Pire écart</th><th class="num">Tolérance</th></tr></thead>
+      <tbody>
+        @for (c of p.parCuve; track c.cuveCode) {
+          <tr [class.ligne-alerte]="c.nombreAnomalies > 0">
+            <td>{{ c.cuveCode }}</td>
+            <td>{{ c.carburantNom }}</td>
+            <td class="num">{{ c.nombreJaugeages }}</td>
+            <td class="num">{{ c.nombreAnomalies }}</td>
+            <td class="num" [class.negatif]="c.ecartLitres < 0">{{ c.ecartLitres | number: '1.0-3' }} L</td>
+            <td class="num">{{ c.ecartValeurDH | number: '1.2-2' }} DH</td>
+            <td class="num">{{ c.pireEcartPct | number: '1.2-2' }} %</td>
+            <td class="num">{{ c.tolerancePct | number: '1.2-2' }} %</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="8" class="muted">Aucun jaugeage sur la période.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<div class="card">
+  <h2>Bilan par pompiste</h2>
+  <table>
+    <thead><tr><th>Pompiste</th><th class="num">Postes</th><th class="num">Volume</th><th class="num">CA compteurs</th><th class="num">Écart total</th><th class="num">Manquants</th><th class="num">Écart moyen</th><th class="num">Hors tolérance</th><th class="num">Index discontinus</th></tr></thead>
+    <tbody>
+      @for (b of pompistes(); track b.pompiste) {
+        <tr [class.ligne-alerte]="b.nombreEcartsHorsTolerance > 0 || b.nombreIndexDiscontinus > 0">
+          <td>{{ b.pompiste }}</td>
+          <td class="num">{{ b.nombrePostes }}</td>
+          <td class="num">{{ b.volumeVendu | number: '1.0-0' }} L</td>
+          <td class="num">{{ b.chiffreAffaires | number: '1.2-2' }}</td>
+          <td class="num" [class.negatif]="b.ecartTotal < 0">{{ b.ecartTotal | number: '1.2-2' }}</td>
+          <td class="num">{{ b.manquantsDH | number: '1.2-2' }}</td>
+          <td class="num">{{ b.ecartMoyen | number: '1.2-2' }}</td>
+          <td class="num">{{ b.nombreEcartsHorsTolerance }}</td>
+          <td class="num">{{ b.nombreIndexDiscontinus }}</td>
+        </tr>
+      } @empty {
+        <tr><td colspan="9" class="muted">Aucun poste clôturé sur la période.</td></tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Chiffre d'affaires par jour</h2>
+    <div class="barres">
+      @for (j of ca(); track j.date) {
+        <div class="barre" [style.height.%]="(j.chiffreAffaires / caMax()) * 100" [title]="(j.date | date: 'dd/MM') + ' : ' + (j.chiffreAffaires | number: '1.2-2') + ' DH'"></div>
+      }
+    </div>
+  </div>
+
+  @if (marges(); as m) {
+    <div class="card">
+      <h2>Marges par carburant (HT)</h2>
+      <table>
+        <thead><tr><th>Carburant</th><th class="num">Volume</th><th class="num">CA HT</th><th class="num">Coût</th><th class="num">Marge</th><th class="num">Taux</th></tr></thead>
+        <tbody>
+          @for (l of m.parCarburant; track l.carburant) {
+            <tr>
+              <td>{{ l.carburant }}</td>
+              <td class="num">{{ l.volumeVendu | number: '1.0-0' }} L</td>
+              <td class="num">{{ l.chiffreAffairesHT | number: '1.2-2' }}</td>
+              <td class="num">{{ l.coutAchatHT | number: '1.2-2' }}</td>
+              <td class="num">{{ l.margeBruteHT | number: '1.2-2' }}</td>
+              <td class="num">{{ l.tauxMargePct | number: '1.1-1' }} %</td>
+            </tr>
+          }
+          <tr><td><strong>Total</strong></td><td></td><td class="num"><strong>{{ m.chiffreAffairesHT | number: '1.2-2' }}</strong></td><td></td>
+            <td class="num"><strong>{{ m.margeBruteHT | number: '1.2-2' }}</strong></td><td class="num"><strong>{{ m.tauxMargeGlobalPct | number: '1.1-1' }} %</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

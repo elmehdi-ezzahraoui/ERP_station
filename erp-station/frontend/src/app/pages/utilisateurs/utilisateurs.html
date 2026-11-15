@@ -1,0 +1,40 @@
+<h1>Utilisateurs</h1>
+@if (message()) { <div class="msg msg-ok">{{ message() }}</div> }
+@if (erreur()) { <div class="msg msg-err">{{ erreur() }}</div> }
+
+<div class="card">
+  <table>
+    <thead><tr><th>Identifiant</th><th>Nom</th><th>Rôle</th><th>Actif</th><th></th></tr></thead>
+    <tbody>
+      @for (u of utilisateurs(); track u.id) {
+        <tr>
+          <td>{{ u.username }}</td>
+          <td><input [(ngModel)]="u.nomComplet" /></td>
+          <td>
+            <select [(ngModel)]="u.role">
+              @for (r of roles; track r) { <option [ngValue]="r">{{ r }}</option> }
+            </select>
+          </td>
+          <td><input type="checkbox" [(ngModel)]="u.actif" /></td>
+          <td><button class="btn btn-light" (click)="enregistrer(u)">Enregistrer</button></td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Nouveau compte</h2>
+  <div class="form-row">
+    <div class="field"><label for="uname">Identifiant</label><input id="uname" [(ngModel)]="nouveau.username" /></div>
+    <div class="field"><label for="upwd">Mot de passe (6 caractères min.)</label><input id="upwd" type="password" [(ngModel)]="nouveau.motDePasse" /></div>
+    <div class="field"><label for="unom">Nom complet</label><input id="unom" [(ngModel)]="nouveau.nomComplet" /></div>
+    <div class="field">
+      <label for="urole">Rôle</label>
+      <select id="urole" [(ngModel)]="nouveau.role">
+        @for (r of roles; track r) { <option [ngValue]="r">{{ r }}</option> }
+      </select>
+    </div>
+    <button class="btn btn-primary" (click)="creer()">Créer</button>
+  </div>
+</div>

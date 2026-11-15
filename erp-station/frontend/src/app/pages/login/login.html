@@ -1,0 +1,23 @@
+<div class="login-page">
+  <form class="login-card" (ngSubmit)="seConnecter()">
+    <h1>ERP Station-Service</h1>
+    <p class="muted" style="text-align:center">Contrôle des pertes de carburant et de caisse</p>
+    @if (erreur()) {
+      <div class="msg msg-err">{{ erreur() }}</div>
+    }
+    <div class="field">
+      <label for="username">Nom d'utilisateur</label>
+      <input id="username" name="username" [(ngModel)]="username" required autocomplete="username" />
+    </div>
+    <div class="field">
+      <label for="password">Mot de passe</label>
+      <input id="password" name="password" type="password" [(ngModel)]="password" required autocomplete="current-password" />
+    </div>
+    <button class="btn btn-primary" type="submit" [disabled]="chargement() || !username || !password">
+      {{ chargement() ? 'Connexion...' : 'Se connecter' }}
+    </button>
+    <div class="demo">
+      Comptes de démo : admin/admin123, gerant/gerant123, pompiste1/pompiste123, comptable/comptable123
+    </div>
+  </form>
+</div>

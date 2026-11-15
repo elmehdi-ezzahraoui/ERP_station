@@ -1,0 +1,53 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            # Frontend Angular (ng serve)
+            allowedOrigins:
+              - "http://localhost:4200"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+      routes:
+        - id: authentification-service
+          uri: lb://authentification-service
+          predicates:
+            - Path=/api/auth/**,/api/utilisateurs/**
+        - id: stock-service
+          uri: lb://stock-service
+          predicates:
+            - Path=/api/carburants/**,/api/cuves/**,/api/jaugeages/**
+        - id: achat-service
+          uri: lb://achat-service
+          predicates:
+            - Path=/api/fournisseurs/**,/api/livraisons/**
+        - id: vente-service
+          uri: lb://vente-service
+          predicates:
+            - Path=/api/pompes/**,/api/pistolets/**,/api/postes/**,/api/ventes/**,/api/clotures/**,/api/parametres/controle/**
+        - id: client-service
+          uri: lb://client-service
+          predicates:
+            - Path=/api/clients/**,/api/factures/**,/api/reglements/**,/api/parametres/financiers/**
+        - id: statistiques-service
+          uri: lb://statistiques-service
+          predicates:
+            - Path=/api/statistiques/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+
+security:
+  jwt:
+    # Doit etre identique a la cle de authentification-service.
+    secret: ${JWT_SECRET:c3RhdGlvbi1zZXJ2aWNlLWVycC1lbXNpLXBmYS0yMDI2LXNlY3JldC1rZXktMjU2Yml0cw==}

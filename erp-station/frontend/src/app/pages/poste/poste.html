@@ -1,0 +1,187 @@
+<h1>Poste pompiste</h1>
+
+@if (message()) { <div class="msg msg-ok">{{ message() }}</div> }
+@if (avertissement()) { <div class="msg msg-warn">{{ avertissement() }}</div> }
+@if (erreur()) { <div class="msg msg-err">{{ erreur() }}</div> }
+
+<!-- Choix ou ouverture du poste -->
+<div class="card">
+  <div class="form-row">
+    @if (postes().length) {
+      <div class="field">
+        <label for="poste">Poste ouvert</label>
+        <select id="poste" [ngModel]="posteId()" (ngModelChange)="selectionner($event)">
+          <option [ngValue]="null">-- choisir --</option>
+          @for (p of postes(); track p.id) {
+            <option [ngValue]="p.id">n° {{ p.id }} - {{ p.pompiste }} (depuis {{ p.dateOuverture | date: 'HH:mm' }})</option>
+          }
+        </select>
+      </div>
+    }
+    @if (!monPosteOuvert()) {
+      <div class="field">
+        <label for="fond">Fond de caisse (DH)</label>
+        <input id="fond" class="small" type="number" min="0" [(ngModel)]="fondCaisse" />
+      </div>
+      <button class="btn btn-primary" (click)="ouvrir()">Ouvrir mon poste</button>
+    }
+  </div>
+</div>
+
+@if (poste(); as p) {
+  <!-- Etape 1 : index de debut -->
+  <div class="card">
+    <h2>1. Index de début</h2>
+    @if (releves().length === 0) {
+      <p class="muted">Cochez les pistolets que vous utilisez et vérifiez l'index affiché par le compteur.</p>
+      <table>
+        <thead><tr><th>Utilisé</th><th>Pistolet</th><th class="num">Dernier index connu</th><th>Index lu sur le compteur</th></tr></thead>
+        <tbody>
+          @for (s of saisieDebut; track s.pistolet.id) {
+            <tr>
+              <td><input type="checkbox" [(ngModel)]="s.utilise" /></td>
+              <td>{{ libellePistolet(s.pistolet.id) }}</td>
+              <td class="num">{{ s.pistolet.dernierIndex | number: '1.0-3' }}</td>
+              <td><input type="number" min="0" step="0.001" [(ngModel)]="s.index" [disabled]="!s.utilise" /></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="form-row" style="margin-top:12px">
+        <button class="btn btn-primary" (click)="enregistrerIndexDebut()">Enregistrer les index de début</button>
+      </div>
+    } @else {
+      <table>
+        <thead><tr><th>Pistolet</th><th class="num">Index de début</th><th>Contrôle</th></tr></thead>
+        <tbody>
+          @for (r of releves(); track r.id) {
+            <tr [class.ligne-alerte]="r.indexDiscontinu">
+              <td>{{ libellePistolet(r.pistoletId) }}</td>
+              <td class="num">{{ r.indexDebut | number: '1.0-3' }}</td>
+              <td>
+                @if (r.indexDiscontinu) {
+                  <span class="badge badge-danger">Discontinu (attendu {{ r.dernierIndexConnu | number: '1.0-3' }})</span>
+                } @else {
+                  <span class="badge badge-ok">OK</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+  <!-- Etape 2 : ventes non payees en especes -->
+  <div class="card">
+    <h2>2. Ventes par carte, chèque ou crédit</h2>
+    <p class="muted">Les ventes en espèces n'ont pas besoin d'être saisies : elles sont calculées à partir des compteurs à la clôture.</p>
+    <div class="form-row">
+      <div class="field">
+        <label for="pistolet">Pistolet</label>
+        <select id="pistolet" [(ngModel)]="venteForm.pistoletId">
+          <option [ngValue]="null">-- choisir --</option>
+          @for (r of releves(); track r.id) {
+            <option [ngValue]="r.pistoletId">{{ libellePistolet(r.pistoletId) }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="mode">Paiement</label>
+        <select id="mode" [(ngModel)]="venteForm.mode">
+          @for (m of modes; track m) { <option [ngValue]="m">{{ m }}</option> }
+        </select>
+      </div>
+      @if (venteForm.mode === 'CREDIT') {
+        <div class="field">
+          <label for="client">Client</label>
+          <select id="client" [(ngModel)]="venteForm.clientId">
+            <option [ngValue]="null">-- choisir --</option>
+            @for (c of clients(); track c.id) {
+              <option [ngValue]="c.id">{{ c.raisonSociale }} (disponible {{ c.disponible | number: '1.0-0' }} DH)</option>
+            }
+          </select>
+        </div>
+      }
+      <div class="field">
+        <label for="type">Saisie</label>
+        <select id="type" [(ngModel)]="venteForm.type">
+          <option value="montant">en dirhams</option>
+          <option value="volume">en litres</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="valeur">{{ venteForm.type === 'montant' ? 'Montant (DH)' : 'Volume (L)' }}</label>
+        <input id="valeur" class="small" type="number" min="0" step="0.01" [(ngModel)]="venteForm.valeur" />
+      </div>
+      <button class="btn btn-primary" (click)="enregistrerVente()" [disabled]="releves().length === 0">Enregistrer la vente</button>
+    </div>
+
+    <table>
+      <thead><tr><th>Heure</th><th>Pistolet</th><th>Carburant</th><th class="num">Volume</th><th class="num">Montant</th><th>Paiement</th></tr></thead>
+      <tbody>
+        @for (v of ventes(); track v.id) {
+          <tr>
+            <td>{{ v.dateVente | date: 'HH:mm' }}</td>
+            <td>P{{ v.pompeNumero }}-{{ v.pistoletNumero }}</td>
+            <td>{{ v.carburantNom }}</td>
+            <td class="num">{{ v.volume | number: '1.0-3' }} L</td>
+            <td class="num">{{ v.montantTotal | number: '1.2-2' }} DH</td>
+            <td>{{ v.modePaiement }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6" class="muted">Aucune vente saisie pour ce poste.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Etape 3 : cloture -->
+  <div class="card">
+    <h2>3. Clôture du poste</h2>
+    @if (releves().length) {
+      <table>
+        <thead><tr><th>Pistolet</th><th class="num">Index de début</th><th>Index de fin</th></tr></thead>
+        <tbody>
+          @for (r of releves(); track r.id) {
+            <tr>
+              <td>{{ libellePistolet(r.pistoletId) }}</td>
+              <td class="num">{{ r.indexDebut | number: '1.0-3' }}</td>
+              <td><input type="number" min="0" step="0.001" [(ngModel)]="indexFin[r.pistoletId]" /></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+    <div class="form-row" style="margin-top:12px">
+      <div class="field">
+        <label for="physique">Argent compté dans la caisse (DH)</label>
+        <input id="physique" type="number" min="0" step="0.01" [(ngModel)]="totalPhysique" />
+      </div>
+      <button class="btn btn-danger" (click)="cloturer()">Clôturer le poste</button>
+    </div>
+    <p class="muted">Fond de caisse : {{ p.fondCaisse | number: '1.2-2' }} DH</p>
+  </div>
+}
+
+<!-- Resultat de la derniere cloture -->
+@if (cloture(); as c) {
+  <div class="card">
+    <h2>Résultat de la clôture du poste n° {{ c.posteId }} ({{ c.pompiste }})</h2>
+    <table>
+      <tbody>
+        <tr><td>Volume vendu (compteurs)</td><td class="num">{{ c.volumeCompteurs | number: '1.0-3' }} L</td></tr>
+        <tr><td>Montant des compteurs</td><td class="num">{{ c.montantCompteurs | number: '1.2-2' }} DH</td></tr>
+        <tr><td>- Carte / Chèque / Crédit</td><td class="num">{{ c.totalCarte | number: '1.2-2' }} / {{ c.totalCheque | number: '1.2-2' }} / {{ c.totalCredit | number: '1.2-2' }} DH</td></tr>
+        <tr><td>= Espèces attendues</td><td class="num">{{ c.especesAttendues | number: '1.2-2' }} DH</td></tr>
+        <tr><td>+ Fond de caisse = Total attendu</td><td class="num">{{ c.totalTheorique | number: '1.2-2' }} DH</td></tr>
+        <tr><td>Argent compté</td><td class="num">{{ c.totalPhysique | number: '1.2-2' }} DH</td></tr>
+        <tr [class.ligne-alerte]="c.ecartHorsTolerance">
+          <td><strong>Écart</strong> (toléré : {{ c.seuilEcartApplique | number: '1.2-2' }} DH)</td>
+          <td class="num" [class.negatif]="c.ecart < 0" [class.positif]="c.ecart >= 0"><strong>{{ c.ecart | number: '1.2-2' }} DH</strong></td>
+        </tr>
+        <tr><td>Index discontinus</td><td class="num">{{ c.nbIndexDiscontinus }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+}
