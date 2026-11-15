@@ -125,6 +125,6 @@ Ouvrir http://localhost:4200.
 ## Équipe
 
 PFA réalisé à l'EMSI, 2026-2027.
-
-- _Noms des membres de l'équipe à compléter_
-- _Encadrant(e) à compléter_
+Noms des membres de l'équipe :
+- EZ-ZAHRAOUI El-Mehdi
+- BOUICHNAD Hanae
